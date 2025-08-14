@@ -3,11 +3,13 @@ import sys
 import ipaddress
 import os
 import getpass
+import shutil
+import textwrap
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from impacket.smbconnection import SMBConnection
 from tqdm import tqdm
 
-threads = 64 # Amount of parallel scans (multithreading n stuff)
+threads = 64  # Amount of parallel scans (multithreading n stuff)
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -18,8 +20,8 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-    WHITE   = '\033[37m'
-    
+    WHITE = '\033[37m'
+
 def clear_screen():
     os.system('clear' if os.name == 'posix' else 'cls')
 
@@ -78,6 +80,38 @@ def scan_host(ip, username=None, password=None):
         pass
     return ip, shares
 
+def print_results_table(results):
+    # Prepare widths
+    term_width = shutil.get_terminal_size((100, 20)).columns
+    col1_header = "IP-Address"
+    col2_header = "Shares"
+
+    col1_width = max(len(col1_header), max((len(ip) for ip, _ in results), default=0))
+    # Leave space for borders and separator: 3 pipes + 4 pluses approx; keep at least 20 chars for shares
+    col2_width = max(len(col2_header), 20, term_width - (col1_width + 7))
+    if col2_width < 20:
+        col2_width = 20  # hard minimum
+
+    def hline():
+        return f"+{'-'*(col1_width+2)}+{'-'*(col2_width+2)}+"
+
+    def row(col1, col2):
+        return f"| {col1.ljust(col1_width)} | {col2.ljust(col2_width)} |"
+
+    print(hline())
+    print(row(col1_header, col2_header))
+    print(hline())
+
+    for ip, shares in results:
+        shares_text = ", ".join(shares) if shares else ""
+        wrapped = textwrap.wrap(shares_text, width=col2_width) or [""]
+        # first line with IP
+        print(row(ip, wrapped[0]))
+        # subsequent wrapped lines (no IP)
+        for cont in wrapped[1:]:
+            print(row("", cont))
+        print(hline())
+
 def main():
     if len(sys.argv) != 2:
         print(f"Usage: {sys.argv[0]} <IP-Range>")
@@ -88,12 +122,12 @@ def main():
     clear_screen()
     print_ascii_art()
     print_imprint()
-    
+
     # Ask for username and password
     username = input("Username (empty für anonymous scan): ").strip()
     password = None
     if username:
-        password = getpass.getpass("Passwort: ")
+        password = getpass.getpass("Password: ")
 
     network = ipaddress.ip_network(sys.argv[1], strict=False)
     hosts = list(network.hosts())
@@ -103,16 +137,13 @@ def main():
 
     print(f"Results will be saved in: {bcolors.BOLD}{output_file}{bcolors.ENDC}\n")
     print(f"{bcolors.OKGREEN}\nStarting Network-Scan {sys.argv[1]} with User: {username or 'anonym'}")
-    
+
     results = []
     block_size = 30
     print(f"{bcolors.OKCYAN}")
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = {}
         for i in range(0, len(hosts), block_size):
-            start_ip = hosts[i]
-            end_ip = hosts[min(i + block_size - 1, len(hosts)-1)]
-            #print(f"{bcolors.OKCYAN}Checking IPs: {start_ip} - {end_ip}{bcolors.ENDC}") #uncomment, if you wnat to print the found shares while the scan is still running
             for ip in hosts[i:i+block_size]:
                 futures[executor.submit(scan_host, str(ip), username, password)] = ip
 
@@ -123,18 +154,20 @@ def main():
                     results.append((ip, shares))
                 pbar.update(1)
 
+    # Save file (same as before)
     with open(output_file, "w") as f:
         for ip, shares in results:
             f.write(f"{ip} - Shares: {', '.join(shares)}\n")
 
-    print(f"\n{bcolors.OKGREEN}Scan finished!{bcolors.ENDC}")
-    print("\n\n")
-    print(f"\n{bcolors.BOLD}Results:{bcolors.ENDC}")
-    if output_file and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-        with open(output_file, 'r') as f:
-            print(f.read())
+    print(f"\n{bcolors.OKGREEN}Scan finished!{bcolors.ENDC}\n")
+    print(f"{bcolors.BOLD}Results:{bcolors.ENDC}")
+
+    if results:
+        print(f"{bcolors.OKCYAN}")
+        print_results_table(results)
+        print(f"{bcolors.ENDC}")
     else:
-        print("No shares found ¯\_(ツ)_/¯")
+        print("No shares found ¯\\_(ツ)_/¯")
+
 if __name__ == "__main__":
     main()
-
