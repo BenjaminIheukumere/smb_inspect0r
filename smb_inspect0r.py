@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from impacket.smbconnection import SMBConnection
 from tqdm import tqdm
 
-threads = 64 # Amount of prarlell scans (multithreading n stuff)
+threads = 64 # Amount of parallel scans (multithreading n stuff)
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -69,7 +69,7 @@ def scan_host(ip, username=None, password=None):
                 domain, user = '', username
             conn.login(user, password, domain)
         else:
-            conn.login('', '')  # anonymer Login
+            conn.login('', '')  # anonymous login
         for share in conn.listShares():
             share_name = share['shi1_netname'][:-1]
             shares.append(share_name)
@@ -84,13 +84,13 @@ def main():
         print(f"Example: {sys.argv[0]} 192.168.1.0/24")
         sys.exit(1)
 
-    # Bildschirm leeren & Banner anzeigen
+    # Clear screen and show banner
     clear_screen()
     print_ascii_art()
     print_imprint()
     
-    # Benutzername & Passwort abfragen
-    username = input("Benutzername (leer für anonymen Scan): ").strip()
+    # Ask for username and password
+    username = input("Username (empty für anonymous scan): ").strip()
     password = None
     if username:
         password = getpass.getpass("Passwort: ")
@@ -112,7 +112,7 @@ def main():
         for i in range(0, len(hosts), block_size):
             start_ip = hosts[i]
             end_ip = hosts[min(i + block_size - 1, len(hosts)-1)]
-            #print(f"{bcolors.OKCYAN}Checking IPs: {start_ip} - {end_ip}{bcolors.ENDC}")
+            #print(f"{bcolors.OKCYAN}Checking IPs: {start_ip} - {end_ip}{bcolors.ENDC}") #uncomment, if you wnat to print the found shares while the scan is still running
             for ip in hosts[i:i+block_size]:
                 futures[executor.submit(scan_host, str(ip), username, password)] = ip
 
