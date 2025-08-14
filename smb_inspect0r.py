@@ -167,7 +167,7 @@ def main():
         print_results_table(results)
         print(f"{bcolors.ENDC}")
     else:
-        print("No shares found ¯\\_(ツ)_/¯")
+        print(f"{bcolors.OKCYAN}No shares found ¯\\_(ツ)_/¯{bcolors.ENDC}")
 
 if __name__ == "__main__":
     main()
