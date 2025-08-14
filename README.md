@@ -26,7 +26,7 @@ Unauthenticated Scan: Found shares will be put in anon_smb_shares_found.txt
 Content of the output file will be printed on screen, when scan is done, too, if shares were found.
 
 ## Screenshot of SMB Inspect0r in action
-![SMB Inspect0r in action](smb_inspector.png)
+
 
 ## Tuning
 Modify "threads" variable in the top of the script (after the imports) to change the number of parallel threads.
