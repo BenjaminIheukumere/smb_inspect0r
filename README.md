@@ -17,6 +17,7 @@ Leave Username empty (just press enter) for anonymous scan.
 
 ### Examples
 Single IP: ./smb_inspect0r 10.10.10.10
+
 IP-Range: ./smb_inspect0r 10.10.10.0/24
 
 ## Output
